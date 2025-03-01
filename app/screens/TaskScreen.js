@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import * as Animatable from "react-native-animatable";
 
 // Generate weekly tasks for a year
 const generateWeeklyTasks = () => {
   const baseTasks = [
-    ["Call your parents and ask about their day 📞", "Cook a meal for your family 🍲", "Go for a walk with your parents 🚶‍♂️", "Share a childhood memory 📖", "Write a thank-you note for them 📝", "Watch a movie together 🎥", "Say 'I love you' to your family ❤️"],
-    ["Help clean the house 🧹", "Make them a cup of tea ☕", "Spend time without your phone 📵", "Ask about their childhood 👵", "Plan a weekend outing 🏞️", "Share a joke and make them laugh 😂", "Listen to their favorite music 🎵"],
-    ["Help with grocery shopping 🛒", "Do a chore without being asked 🏠", "Ask for their advice on something 🗣️", "Write down 3 things you love about them 💕", "Plan a surprise for them 🎉", "Give them a heartfelt compliment 😊", "Eat dinner together at the table 🍽️"],
-    // Repeat similar structure for 52 weeks...
+    ["Call your parents 📞", "Cook a meal 🍲", "Go for a walk 🚶‍♂️", "Share a memory 📖", "Write a thank-you note 📝", "Watch a movie 🎥", "Say 'I love you' ❤️"],
+    ["Help clean the house 🧹", "Make them tea ☕", "Spend time without your phone 📵", "Ask about their childhood 👵", "Plan a weekend outing 🏞️", "Share a joke 😂", "Listen to their favorite music 🎵"],
+    ["Help with shopping 🛒", "Do a chore 🏠", "Ask for advice 🗣️", "Write 3 things you love 💕", "Plan a surprise 🎉", "Give a compliment 😊", "Eat dinner together 🍽️"],
   ];
 
   let tasksForYear = [];
@@ -24,6 +24,7 @@ const generateWeeklyTasks = () => {
 const TaskScreen = () => {
   const [weeklyTasks] = useState(generateWeeklyTasks());
   const [completedTasks, setCompletedTasks] = useState([]);
+  const scaleAnim = new Animated.Value(1); // Button animation
 
   // Get current week of the year
   const getCurrentWeek = () => {
@@ -39,54 +40,39 @@ const TaskScreen = () => {
   const completeTask = (task) => {
     if (!completedTasks.includes(task)) {
       setCompletedTasks([...completedTasks, task]);
+      Animated.sequence([
+        Animated.timing(scaleAnim, { toValue: 1.2, duration: 150, useNativeDriver: true }),
+        Animated.timing(scaleAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
+      ]).start();
     }
   };
 
-  const renderItem = ({ item }) => {
+  const renderItem = ({ item, index }) => {
     const isCompleted = completedTasks.includes(item);
 
     return (
-      <TouchableOpacity
-        style={[styles.task, isCompleted && styles.completedTask]}
-        onPress={() => completeTask(item)}
-      >
-        <Text style={[styles.taskText, isCompleted && styles.completedText]}>
-          {item}
-        </Text>
-        {isCompleted ? (
-          <Ionicons name="checkmark-circle" size={24} color="green" />
-        ) : (
-          <Ionicons name="ellipse-outline" size={24} color="gray" />
-        )}
-      </TouchableOpacity>
+      <Animatable.View animation="fadeInRight" delay={index * 100} style={[styles.task, isCompleted && styles.completedTask]}>
+        <Text style={[styles.taskText, isCompleted && styles.completedText]}>{item}</Text>
+        <TouchableOpacity onPress={() => completeTask(item)}>
+          <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+            <Ionicons name={isCompleted ? "checkmark-circle" : "ellipse-outline"} size={24} color={isCompleted ? "green" : "gray"} />
+          </Animated.View>
+        </TouchableOpacity>
+      </Animatable.View>
     );
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Weekly Tasks (Week {currentWeek}) 🌟</Text>
-
-      <FlatList
-        data={currentTasks}
-        renderItem={renderItem}
-        keyExtractor={(item, index) => index.toString()}
-      />
+      <Animatable.Text animation="fadeInDown" style={styles.header}>Weekly Tasks (Week {currentWeek}) 🌟</Animatable.Text>
+      <FlatList data={currentTasks} renderItem={renderItem} keyExtractor={(item, index) => index.toString()} />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: "#F5F5F5",
-  },
-  header: {
-    fontSize: 22,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 20,
-  },
+  container: { flex: 1, padding: 20, backgroundColor: "#F5F5F5" },
+  header: { fontSize: 22, fontWeight: "bold", textAlign: "center", marginBottom: 20 },
   task: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -101,17 +87,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  completedTask: {
-    backgroundColor: "#DFFFD6",
-  },
-  taskText: {
-    fontSize: 16,
-    flex: 1,
-  },
-  completedText: {
-    textDecorationLine: "line-through",
-    color: "gray",
-  },
+  completedTask: { backgroundColor: "#DFFFD6" },
+  taskText: { fontSize: 16, flex: 1 },
+  completedText: { textDecorationLine: "line-through", color: "gray" },
 });
 
 export default TaskScreen;
