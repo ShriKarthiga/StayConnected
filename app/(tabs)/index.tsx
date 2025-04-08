@@ -5,6 +5,8 @@ import TaskScreen from "../screens/TaskScreen";
 import JournalScreen from "../screens/JournalScreen";
 import MilestoneScreen from "../screens/Milescreen"; // ✅ Make sure this is correct
 import { Ionicons } from "@expo/vector-icons";
+import PuzzleGameScreen from "../screens/PuzzleGameScreen"; // Import game screen
+
 
 const Tab = createBottomTabNavigator();
 
@@ -23,7 +25,10 @@ export default function TabNavigator() {
             iconName = "book";
           } else if (route.name === "Milestones") {
             iconName = "trophy";
+          }else if (route.name === "Puzzle") {
+            iconName = "extension-puzzle"; // Puzzle Icon
           }
+
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -36,6 +41,7 @@ export default function TabNavigator() {
       <Tab.Screen name="Tasks" component={TaskScreen} />
       <Tab.Screen name="Journal" component={JournalScreen} />
       <Tab.Screen name="Milestones" component={MilestoneScreen} /> 
+      <Tab.Screen name="Puzzle" component={PuzzleGameScreen}/>
     </Tab.Navigator>
   );
 }

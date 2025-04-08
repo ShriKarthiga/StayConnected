@@ -1,68 +1,87 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, ScrollView, StyleSheet, Alert } from 'react-native';
+import { 
+  View, Text, TextInput, Button, ScrollView, StyleSheet, Alert, 
+  Image, TouchableOpacity 
+} from 'react-native';
 import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
 
 const JournalScreen = () => {
   const [journalText, setJournalText] = useState('');
   const [entries, setEntries] = useState([]);
-  const [location, setLocation] = useState(null);
+  const [image, setImage] = useState(null);
 
   useEffect(() => {
-    const requestLocationPermission = async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Location permission is required to get your coordinates.');
-        return;
-      }
+    const requestPermissions = async () => {
+      await Location.requestForegroundPermissionsAsync();
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
     };
-
-    requestLocationPermission();
+    requestPermissions();
   }, []);
 
   const handleAddEntry = async () => {
-    if (!journalText.trim()) {
-      Alert.alert('Error', 'Please enter some text.');
+    if (!journalText.trim() && !image) {
+      Alert.alert('Error', 'Please add a journal entry or an image.');
       return;
     }
 
-    // Get Current Location
     let loc = await Location.getCurrentPositionAsync({});
     const { latitude, longitude } = loc.coords;
 
-    // Create New Journal Entry
     const newEntry = {
       text: journalText,
       date: new Date().toLocaleString(),
-      location: `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`,
+      location: `📍 Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`,
+      image: image,
     };
 
-    setEntries([newEntry, ...entries]); // Add new entry at the top
-    setJournalText(''); // Clear input field
-    setLocation(`Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`);
+    setEntries([newEntry, ...entries]);
+    setJournalText('');
+    setImage(null);
+  };
+
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+    }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>My Journal</Text>
+      <Text style={styles.title}>📘 My Journal</Text>
 
-      {/* Journal Input */}
+      <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
+        <Text style={styles.uploadText}>📷 Upload Image</Text>
+      </TouchableOpacity>
+
+      {image && <Image source={{ uri: image }} style={styles.previewImage} />}
+
       <TextInput
         style={styles.input}
-        placeholder="Write your journal entry here..."
+        placeholder="Write something cool... ✨"
         value={journalText}
         onChangeText={setJournalText}
         multiline
       />
 
-      <Button title="Add Entry" onPress={handleAddEntry} color="#007AFF" />
+      <TouchableOpacity style={styles.addButton} onPress={handleAddEntry}>
+        <Text style={styles.addButtonText}>➕ Add Post</Text>
+      </TouchableOpacity>
 
-      {/* Display Journal Entries */}
       <ScrollView style={styles.entryList}>
         {entries.map((entry, index) => (
           <View key={index} style={styles.entry}>
-            <Text style={styles.entryDate}>{entry.date}</Text>
-            <Text style={styles.entryLocation}>📍 {entry.location}</Text>
-            <Text style={styles.entryText}>{entry.text}</Text>
+            <Text style={styles.entryDate}>📅 {entry.date}</Text>
+            <Text style={styles.entryLocation}>{entry.location}</Text>
+            {entry.image && <Image source={{ uri: entry.image }} style={styles.entryImage} />}
+            <Text style={styles.entryText}>{entry.text} 😊</Text>
           </View>
         ))}
       </ScrollView>
@@ -74,18 +93,37 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#ADD8E6', // Light Blue Background
+    backgroundColor: '#D6EAF8', // Light Blue Background
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
-    marginBottom: 20,
     textAlign: 'center',
+    color: '#2E86C1', // Dark Blue
+    marginBottom: 15,
+  },
+  uploadButton: {
+    backgroundColor: '#5DADE2',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  uploadText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  previewImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 10,
+    marginBottom: 10,
   },
   input: {
     width: '100%',
     height: 100,
-    borderColor: '#ccc',
+    borderColor: '#2980B9',
     borderWidth: 1,
     borderRadius: 5,
     padding: 10,
@@ -93,13 +131,25 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     marginBottom: 10,
   },
+  addButton: {
+    backgroundColor: '#2874A6',
+    padding: 12,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  addButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
   entryList: {
-    marginTop: 20,
+    marginTop: 10,
   },
   entry: {
     padding: 15,
     backgroundColor: '#fff',
-    borderRadius: 5,
+    borderRadius: 10,
     marginBottom: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -109,13 +159,19 @@ const styles = StyleSheet.create({
   },
   entryDate: {
     fontSize: 12,
-    color: '#666',
+    color: '#555',
     marginBottom: 5,
   },
   entryLocation: {
     fontSize: 14,
-    color: '#007AFF',
+    color: '#2E86C1',
     marginBottom: 5,
+  },
+  entryImage: {
+    width: '100%',
+    height: 180,
+    borderRadius: 5,
+    marginBottom: 10,
   },
   entryText: {
     fontSize: 16,
@@ -124,3 +180,4 @@ const styles = StyleSheet.create({
 });
 
 export default JournalScreen;
+

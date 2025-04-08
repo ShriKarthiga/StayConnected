@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Animatable from "react-native-animatable";
+import AsyncStorage from "@react-native-async-storage/async-storage"; // ✅ Store progress
 
-// Generate weekly tasks for a year
 const generateWeeklyTasks = () => {
   const baseTasks = [
     ["Call your parents 📞", "Cook a meal 🍲", "Go for a walk 🚶‍♂️", "Share a memory 📖", "Write a thank-you note 📝", "Watch a movie 🎥", "Say 'I love you' ❤️"],
@@ -15,7 +15,7 @@ const generateWeeklyTasks = () => {
   for (let i = 0; i < 52; i++) {
     tasksForYear.push({
       week: i + 1,
-      tasks: baseTasks[i % baseTasks.length], // Cycle through predefined tasks
+      tasks: baseTasks[i % baseTasks.length], 
     });
   }
   return tasksForYear;
@@ -24,9 +24,23 @@ const generateWeeklyTasks = () => {
 const TaskScreen = () => {
   const [weeklyTasks] = useState(generateWeeklyTasks());
   const [completedTasks, setCompletedTasks] = useState([]);
-  const scaleAnim = new Animated.Value(1); // Button animation
+  const scaleAnim = new Animated.Value(1);
 
-  // Get current week of the year
+  useEffect(() => {
+    loadCompletedTasks();
+  }, []);
+
+  const loadCompletedTasks = async () => {
+    const storedTasks = await AsyncStorage.getItem("completedTasks");
+    if (storedTasks) {
+      setCompletedTasks(JSON.parse(storedTasks));
+    }
+  };
+
+  const saveCompletedTasks = async (updatedTasks) => {
+    await AsyncStorage.setItem("completedTasks", JSON.stringify(updatedTasks));
+  };
+
   const getCurrentWeek = () => {
     const start = new Date(new Date().getFullYear(), 0, 1);
     const today = new Date();
@@ -37,9 +51,12 @@ const TaskScreen = () => {
   const currentWeek = getCurrentWeek();
   const currentTasks = weeklyTasks.find((week) => week.week === currentWeek)?.tasks || [];
 
-  const completeTask = (task) => {
+  const completeTask = async (task) => {
     if (!completedTasks.includes(task)) {
-      setCompletedTasks([...completedTasks, task]);
+      const updatedTasks = [...completedTasks, task];
+      setCompletedTasks(updatedTasks);
+      await saveCompletedTasks(updatedTasks);
+
       Animated.sequence([
         Animated.timing(scaleAnim, { toValue: 1.2, duration: 150, useNativeDriver: true }),
         Animated.timing(scaleAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
